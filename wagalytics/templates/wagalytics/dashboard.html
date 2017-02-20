@@ -42,89 +42,97 @@
       s.parentNode.insertBefore(tag, s);
     }
 
+	function warningMessage() {
+		var warning = document.createElement('p');
+		warning.className = 'help-block help-warning';
+		warning.innerHTML = 'You are missing required settings for Analytics to work correctly.';
+		var container = document.querySelector('#wagalytics-container');
+		container.parentNode.insertBefore(warning, container);
+	}
+
     gapi.analytics.ready(function() {
+		var ga_view_id = '{{ ga_view_id }}';
+		if(!ga_view_id) {
+			  warningMessage();
+			  return;
+		}
 
-      var ga_view_id = '{{ ga_view_id }}';
-	  if(!ga_view_id) {
-		  var warning = document.createElement('p');
-		  warning.className = 'help-block help-warning';
-		  warning.innerHTML = 'You are missing required settings for Analytics to work correctly.';
-		  var container = document.querySelector('#wagalytics-container');
-		  container.parentNode.insertBefore(warning, container);
-		  return;
-	  }
+		$.ajax({
+			url:"{% url 'wagalytics_token' %}",
+			type: "GET",
+			success: function(data) {
+				gapi.analytics.auth.authorize({
+					'serverAuth': {
+						'access_token': data
+					}
+				});
+				var sessionsLineChart = new gapi.analytics.googleCharts.DataChart({
+					query: {
+						'ids': ga_view_id,
+						'start-date': '30daysAgo',
+						'end-date': 'today',
+						'metrics': 'ga:sessions',
+						'dimensions': 'ga:date'
+					},
+					chart: {
+						'container': 'sessions-line-chart-container',
+						'type': 'LINE',
+						'options': {
+							'width': '100%',
+							'height': '200px',
+						}
+					}
+				});
+				sessionsLineChart.execute();
 
-      $.get( "{% url 'wagalytics_token' %}", function(data) {
-            gapi.analytics.auth.authorize({
-              'serverAuth': {
-              'access_token': data
-            }
-        })
-      });
+				var popularPagesTable = new gapi.analytics.googleCharts.DataChart({
+					query: {
+						'ids': ga_view_id,
+						'start-date': '30daysAgo',
+						'end-date': 'today',
+						'metrics': 'ga:pageviews',
+						'dimensions': 'ga:hostname,ga:pagePath',
+						'sort': '-ga:pageviews',
+						'max-results': 25
+					},
+					chart: {
+						'container': 'popular-pages-table-container',
+						'type': 'TABLE',
+						'options': {
+							'width': '100%',
+							'page': 'enable',
+							'pageSize': 5
+						}
+					}
+				});
+				popularPagesTable.execute();
 
-      var sessionsLineChart = new gapi.analytics.googleCharts.DataChart({
-        query: {
-          'ids': ga_view_id,
-          'start-date': '30daysAgo',
-          'end-date': 'today',
-          'metrics': 'ga:sessions',
-          'dimensions': 'ga:date'
-        },
-        chart: {
-          'container': 'sessions-line-chart-container',
-          'type': 'LINE',
-          'options': {
-            'width': '100%',
-            'height': '200px',
-          }
-        }
-      });
-      sessionsLineChart.execute();
-
-      var popularPagesTable = new gapi.analytics.googleCharts.DataChart({
-        query: {
-          'ids': ga_view_id,
-          'start-date': '30daysAgo',
-          'end-date': 'today',
-          'metrics': 'ga:pageviews',
-          'dimensions': 'ga:hostname,ga:pagePath',
-          'sort': '-ga:pageviews',
-          'max-results': 25
-        },
-        chart: {
-          'container': 'popular-pages-table-container',
-          'type': 'TABLE',
-          'options': {
-            'width': '100%',
-            'page': 'enable',
-            'pageSize': 5
-          }
-        }
-      });
-      popularPagesTable.execute();
-
-      var topReferrersTable = new gapi.analytics.googleCharts.DataChart({
-        query: {
-          'ids': ga_view_id,
-          'start-date': '30daysAgo',
-          'end-date': 'today',
-          'metrics': 'ga:pageviews',
-          'dimensions': 'ga:fullReferrer',
-          'sort': '-ga:pageviews',
-          'max-results': 25
-        },
-        chart: {
-          'container': 'top-referrers-table-container',
-          'type': 'TABLE',
-          'options': {
-            'width': '100%',
-            'page': 'enable',
-            'pageSize': 5
-          }
-        }
-      });
-      topReferrersTable.execute();
-
-    });
-    </script>
+				var topReferrersTable = new gapi.analytics.googleCharts.DataChart({
+					query: {
+						'ids': ga_view_id,
+						'start-date': '30daysAgo',
+						'end-date': 'today',
+						'metrics': 'ga:pageviews',
+						'dimensions': 'ga:fullReferrer',
+						'sort': '-ga:pageviews',
+						'max-results': 25
+					},
+					chart: {
+						'container': 'top-referrers-table-container',
+						'type': 'TABLE',
+						'options': {
+							'width': '100%',
+							'page': 'enable',
+							'pageSize': 5
+						}
+					}
+				});
+				topReferrersTable.execute();
+			},
+			error: function(data) {
+				warningMessage();
+			}
+		});
+	});
+	</script>
 {% endblock %}
