@@ -20,7 +20,7 @@
     {% trans "30 day analytics" as title_trans %}
     {% include "wagtailadmin/shared/header.html" with title=title_trans %}
 
-    <div class="nice-padding">
+    <div id='wagalytics-container' class="nice-padding">
         <h2>Sessions</h2>
         <div id="sessions-line-chart-container">Loading...</div>
         <h2>Popular content</h2>
@@ -44,6 +44,16 @@
 
     gapi.analytics.ready(function() {
 
+      var ga_view_id = '{{ ga_view_id }}';
+	  if(!ga_view_id) {
+		  var warning = document.createElement('p');
+		  warning.className = 'help-block help-warning';
+		  warning.innerHTML = 'You are missing required settings for Analytics to work correctly.';
+		  var container = document.querySelector('#wagalytics-container');
+		  container.parentNode.insertBefore(warning, container);
+		  return;
+	  }
+
       $.get( "{% url 'wagalytics_token' %}", function(data) {
             gapi.analytics.auth.authorize({
               'serverAuth': {
@@ -54,7 +64,7 @@
 
       var sessionsLineChart = new gapi.analytics.googleCharts.DataChart({
         query: {
-          'ids': '{{ ga_view_id }}',
+          'ids': ga_view_id,
           'start-date': '30daysAgo',
           'end-date': 'today',
           'metrics': 'ga:sessions',
@@ -73,7 +83,7 @@
 
       var popularPagesTable = new gapi.analytics.googleCharts.DataChart({
         query: {
-          'ids': '{{ ga_view_id }}',
+          'ids': ga_view_id,
           'start-date': '30daysAgo',
           'end-date': 'today',
           'metrics': 'ga:pageviews',
@@ -95,7 +105,7 @@
 
       var topReferrersTable = new gapi.analytics.googleCharts.DataChart({
         query: {
-          'ids': '{{ ga_view_id }}',
+          'ids': ga_view_id,
           'start-date': '30daysAgo',
           'end-date': 'today',
           'metrics': 'ga:pageviews',

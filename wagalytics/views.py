@@ -1,11 +1,11 @@
 from django.conf import settings
-from django.http import HttpResponse
+from django.core.cache import cache
+from django.http import HttpResponse, HttpResponseServerError
 from django.shortcuts import render
-from django.views.decorators.cache import cache_page
 from oauth2client.service_account import ServiceAccountCredentials
 
 
-def get_access_token(ga_key_filepath):
+def get_access_token():
     # from https://ga-dev-tools.appspot.com/embed-api/server-side-authorization/
     # Defines a method to get an access token from the credentials object.
     # The access token is automatically refreshed if it has expired.
@@ -15,19 +15,23 @@ def get_access_token(ga_key_filepath):
 
     # Construct a credentials objects from the key data and OAuth2 scope.
     _credentials = ServiceAccountCredentials.from_json_keyfile_name(
-        ga_key_filepath, SCOPE)
+        settings.GA_KEY_FILEPATH, SCOPE)
 
     return _credentials.get_access_token().access_token
 
 
-@cache_page(3600)
 def token(request):
-    # return a cached access token to ajax clients
-    access_token = get_access_token(settings.GA_KEY_FILEPATH)
-    return HttpResponse(access_token)
+    if hasattr(settings, 'GA_KEY_FILEPATH'):
+        # return a cached access token to ajax clients
+        access_token = cache.get_or_set('ga_access_token', get_access_token, 3600)
+        return HttpResponse(access_token)
+    return HttpResponseServerError()
 
 
 def dashboard(request):
-    return render(request, 'wagalytics/dashboard.html', {
-        'ga_view_id': settings.GA_VIEW_ID,
-    })
+    context = {}
+    if hasattr(settings, 'GA_VIEW_ID'):
+        context.update({
+            'ga_view_id': settings.GA_VIEW_ID,
+        })
+    return render(request, 'wagalytics/dashboard.html', context)

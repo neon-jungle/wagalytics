@@ -7,7 +7,7 @@ def google_analytics_settings_check(app_configs, **kwargs):
     messages = []
     if not hasattr(settings, 'GA_KEY_FILEPATH'):
         messages.append(
-            Warning('GA_KEYFILEPATH setting not set. Wagalytics will be disabled')
+            Warning('GA_KEY_FILEPATH setting not set. Wagalytics will be disabled')
         )
     if not hasattr(settings, 'GA_VIEW_ID'):
         messages.append(
